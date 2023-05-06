@@ -9,6 +9,7 @@ import (
 	"time"
 	"encoding/json"
 	"net/http"
+	"net/http/httputil"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"github.com/joho/godotenv"
@@ -109,15 +110,33 @@ func buildTokenSource() oauth2.TokenSource {
 
 func getVideos() {
 	tokenSource := buildTokenSource()
-	client := oauth2.NewClient(oauth2.NoContext, tokenSource)
 
-	// request, requestErr := client.NewRequest("GET", "https://api.twitch.tv/helix/videos", nil)
-	// if requestErr != nil {
-	// 	log.Fatal("Got error when constructing new request")
-	// }
+	var err error;
+	var req *http.Request;
+	var token *oauth2.Token;
+
+	token, err = tokenSource.Token()
+	if err != nil {
+		log.Fatal("Failed to build token from token source")
+	}
+	
+	req, err = http.NewRequest("GET", "https://api.twitch.tv/helix/videos", nil)
+	if err != nil {
+		log.Fatal("Failed to build request")
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+
+	var dump []byte;
+	dump, err = httputil.DumpRequestOut(req, true)
+	if err != nil {
+		log.Fatalf("Got error when dumping request out: %s", err)
+	}
+	fmt.Printf("Request: %s", string(dump[:]))
+
+	fmt.Printf("Address of request: %p\n", &req)
 
 	// username := os.Getenv("TWITCH_USERNAME")
-	response, err := client.Get("https://api.twitch.tv/helix/videos")
+	response, err := (&http.Client{}).Do(req)
 	if err != nil {
 		log.Fatal("Got error when retrieving videos")
 	}

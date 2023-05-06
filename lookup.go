@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"time"
+	_ "errors"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -108,46 +109,60 @@ func buildTokenSource() oauth2.TokenSource {
 	return reuseTokenSource;
 }
 
-func getVideos() {
-	tokenSource := buildTokenSource()
-
+func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	var err error;
 	var req *http.Request;
 	var token *oauth2.Token;
-
+	
 	token, err = tokenSource.Token()
 	if err != nil {
 		log.Fatal("Failed to build token from token source")
 	}
 	
-	req, err = http.NewRequest("GET", "https://api.twitch.tv/helix/videos", nil)
+	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal("Failed to build request")
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token.AccessToken))
+	req.Header.Add("Client-Id", os.Getenv("TWITCH_CLIENT_ID"))
 
-	var dump []byte;
-	dump, err = httputil.DumpRequestOut(req, true)
-	if err != nil {
-		log.Fatalf("Got error when dumping request out: %s", err)
+	if os.Getenv("DEBUG") == "true" {
+		var dump []byte;
+		dump, err = httputil.DumpRequestOut(req, true)
+		if err != nil {
+			log.Fatalf("Got error when dumping request out: %s", err)
+		}
+		fmt.Printf("Request: %s", string(dump[:]))
 	}
-	fmt.Printf("Request: %s", string(dump[:]))
 
-	fmt.Printf("Address of request: %p\n", &req)
+	// fmt.Printf("Address of request: %p\n", &req)
 
 	// username := os.Getenv("TWITCH_USERNAME")
 	response, err := (&http.Client{}).Do(req)
 	if err != nil {
-		log.Fatal("Got error when retrieving videos")
+		log.Fatalf("Got error when issuing GET to %s: %s", url, err)
 	}
 
 	responseBody, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatal("Error when parsing body" + err.Error())
 	}
+
+	// errors.New("Random error")
 	
+	return responseBody, nil;
+}
+
+func getVideos() {
+	tokenSource := buildTokenSource()
+
+	responseBody, err := get(tokenSource, "https://api.twitch.tv/helix/videos")
+	if err != nil {
+		log.Fatalf("Got error when fetching videos: %s", err)
+	}
+
 	fmt.Printf("Hello from getVideos\n")
-	fmt.Printf(string(responseBody[:]) + "\n")
+	fmt.Printf(string(responseBody[:]) + "\n")	
 }
 
 func main() {

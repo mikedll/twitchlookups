@@ -34,7 +34,39 @@ func getClient() *http.Client {
 	return client;
 }
 
+func loadToken() *oauth2.Token {
+	tokenFile := ".access_token"
+	
+	if !fileExists(tokenFile) {
+		return nil
+	}
+
+	file, err := os.Open(tokenFile)
+	if err != nil {
+		log.Fatal("Failed to open token file")
+	}
+	defer file.Close()
+
+	var fileBytes []byte;
+	fileBytes, err = io.ReadAll(file)
+	if err != nil {
+		log.Fatal("Got error when reading token file")
+	}
+
+	token := oauth2.Token{}
+	err = json.Unmarshal(fileBytes, &token)
+	if err != nil {
+		log.Fatal("Got error when unmarshalling token bytes")
+	}
+	
+	return &token;
+}
+
 func getVideos() {
+	token := loadToken()
+	if token == nil {
+		log.Fatal("Failed to load token from file")
+	}
 	
 	oauth2Conf := &clientcredentials.Config{
 		ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
@@ -43,6 +75,8 @@ func getVideos() {
 	}
 
 	tokenSource := oauth2Conf.TokenSource(oauth2.NoContext)
+	fmt.Printf("Token: " + token.AccessToken + "\n")
+	return
 
 	token, tokenErr := tokenSource.Token()
 	if tokenErr != nil {

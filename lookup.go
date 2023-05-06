@@ -109,16 +109,7 @@ func buildTokenSource() oauth2.TokenSource {
 
 func getVideos() {
 	tokenSource := buildTokenSource()
-	fmt.Printf("Address of token source: %p\n", &tokenSource)
-	return
-
-	oauth2Conf := &clientcredentials.Config{
-		ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
-		ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"),
-		TokenURL:     "https://id.twitch.tv/oauth2/token",
-	}
-	
-	client := oauth2Conf.Client(oauth2.NoContext)
+	client := oauth2.NewClient(oauth2.NoContext, tokenSource)
 
 	// request, requestErr := client.NewRequest("GET", "https://api.twitch.tv/helix/videos", nil)
 	// if requestErr != nil {

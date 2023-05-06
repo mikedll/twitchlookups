@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"time"
+	"strconv"
 	_ "errors"
 	"encoding/json"
 	"net/http"
@@ -15,6 +16,16 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 	"github.com/joho/godotenv"
 )
+
+type ApiUser struct {
+	Id             int                        `json:"id"`
+	Login          string                     `json:"login"`
+	DisplayName    string                     `json:"display_name"`
+}
+
+type ApiUsersResponse struct {
+	Users  []ApiUser `json:"data"`
+}
 
 func fileExists(filename string) bool {
     info, err := os.Stat(filename)
@@ -65,7 +76,9 @@ func loadToken() *oauth2.Token {
 }
 
 func cacheTokenToDisk(token *oauth2.Token) {
-	fmt.Printf("Writing token to disk: " + token.AccessToken + "\n")
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf("Writing token to disk: " + token.AccessToken + "\n")
+	}
 
 	var tokenBytes []byte;
 
@@ -78,12 +91,14 @@ func cacheTokenToDisk(token *oauth2.Token) {
 	// fmt.Printf(string(tokenBytes[:]) + "\n")
 
 	os.WriteFile(".access_token", tokenBytes, 0644)
-	fmt.Printf("Wrote token to disk\n")
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf("Wrote token to disk\n")
+	}
 }
 
 func buildTokenSource() oauth2.TokenSource {
 	token := loadToken()
-	if token != nil {
+	if os.Getenv("DEBUG") == "true" && token != nil {
 		fmt.Printf("Token from file: " + token.AccessToken + "\n")	
 	}
 	
@@ -102,7 +117,9 @@ func buildTokenSource() oauth2.TokenSource {
 		log.Fatal("Got error when getting token from reuse source")
 	}
 
-	fmt.Printf("Token from reuse source: " + latestToken.AccessToken + "\n")
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf("Token from reuse source: " + latestToken.AccessToken + "\n")
+	}
 
 	cacheTokenToDisk(latestToken)
 
@@ -156,12 +173,41 @@ func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 func getVideos() {
 	tokenSource := buildTokenSource()
 
-	responseBody, err := get(tokenSource, "https://api.twitch.tv/helix/videos")
+	fmt.Printf("Hello from getVideos\n")
+	
+	var responseBody []byte;
+	var err error;
+	
+	login := os.Getenv("TWITCH_LOGIN")
+
+	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/users?login=" + login)
+	if err != nil {
+		log.Fatalf("Got error when fetching users: %s", err)
+	}
+
+	usersResponse := ApiUsersResponse{};
+	json.Unmarshal(responseBody, &usersResponse)
+
+	// fmt.Printf("Users length: %d\n", len(usersResponse.Users))
+
+	if os.Getenv("DEBUG") == "true" {
+		for _, user := range usersResponse.Users {
+			fmt.Printf("User: %s\n", user.DisplayName)
+		}
+	}
+	
+	if len(usersResponse.Users) != 1 {
+		fmt.Printf("Failed to retrieve exactly 1 user with login: %s\n", login)
+		return
+	}
+
+	user := usersResponse.Users[0]
+		
+	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/videos?user_id=" + strconv.Itoa(user.Id))
 	if err != nil {
 		log.Fatalf("Got error when fetching videos: %s", err)
 	}
 
-	fmt.Printf("Hello from getVideos\n")
 	fmt.Printf(string(responseBody[:]) + "\n")	
 }
 

@@ -64,8 +64,8 @@ func loadToken() *oauth2.Token {
 
 func getVideos() {
 	token := loadToken()
-	if token == nil {
-		log.Fatal("Failed to load token from file")
+	if token != nil {
+		fmt.Printf("Token from file: " + token.AccessToken + "\n")	
 	}
 	
 	oauth2Conf := &clientcredentials.Config{
@@ -75,7 +75,15 @@ func getVideos() {
 	}
 
 	tokenSource := oauth2Conf.TokenSource(oauth2.NoContext)
-	fmt.Printf("Token: " + token.AccessToken + "\n")
+	reuseTokenSource := oauth2.ReuseTokenSource(token, tokenSource)
+
+	var err error;	
+	latestToken, err := reuseTokenSource.Token()
+	if err != nil {
+		log.Fatal("Got error when getting token from reuse source")
+	}
+
+	fmt.Printf("Token from resuse source: " + latestToken.AccessToken + "\n")	
 	return
 
 	token, tokenErr := tokenSource.Token()
@@ -87,7 +95,6 @@ func getVideos() {
 	
 	fmt.Printf("Token: " + token.AccessToken + "\n")
 
-	var err error;
 	var tokenBytes []byte;
 	
 	tokenBytes, err = json.Marshal(token)

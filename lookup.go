@@ -62,7 +62,24 @@ func loadToken() *oauth2.Token {
 	return &token;
 }
 
-func getVideos() {
+func cacheTokenToDisk(token *oauth2.Token) {
+	fmt.Printf("Writing token to disk: " + token.AccessToken + "\n")
+
+	var tokenBytes []byte;
+
+	var err error;
+	tokenBytes, err = json.Marshal(token)
+	if err != nil {
+		log.Fatal("Got error when marshalling token")
+	}
+
+	// fmt.Printf(string(tokenBytes[:]) + "\n")
+
+	os.WriteFile(".access_token", tokenBytes, 0644)
+	fmt.Printf("Wrote token to disk\n")
+}
+
+func buildTokenSource() oauth2.TokenSource {
 	token := loadToken()
 	if token != nil {
 		fmt.Printf("Token from file: " + token.AccessToken + "\n")	
@@ -83,31 +100,24 @@ func getVideos() {
 		log.Fatal("Got error when getting token from reuse source")
 	}
 
-	fmt.Printf("Token from resuse source: " + latestToken.AccessToken + "\n")	
+	fmt.Printf("Token from reuse source: " + latestToken.AccessToken + "\n")
+
+	cacheTokenToDisk(latestToken)
+
+	return reuseTokenSource;
+}
+
+func getVideos() {
+	tokenSource := buildTokenSource()
+	fmt.Printf("Address of token source: %p\n", &tokenSource)
 	return
 
-	token, tokenErr := tokenSource.Token()
-	if tokenErr != nil {
-		log.Fatal("Got error when retrieving token")
+	oauth2Conf := &clientcredentials.Config{
+		ClientID:     os.Getenv("TWITCH_CLIENT_ID"),
+		ClientSecret: os.Getenv("TWITCH_CLIENT_SECRET"),
+		TokenURL:     "https://id.twitch.tv/oauth2/token",
 	}
-
-	fmt.Printf(fmt.Sprintf("Token source address: %p", &tokenSource) + "\n")
 	
-	fmt.Printf("Token: " + token.AccessToken + "\n")
-
-	var tokenBytes []byte;
-	
-	tokenBytes, err = json.Marshal(token)
-	if err != nil {
-		log.Fatal("Got error when marshalling token")
-	}
-
-	fmt.Printf(string(tokenBytes[:]) + "\n")
-
-	os.WriteFile(".access_token", tokenBytes, 0644)
-
-	return;
-
 	client := oauth2Conf.Client(oauth2.NoContext)
 
 	// request, requestErr := client.NewRequest("GET", "https://api.twitch.tv/helix/videos", nil)

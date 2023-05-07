@@ -8,8 +8,8 @@ import (
 	"log"
 	"time"
 	"errors"
-	"strconv"
-	"regexp"
+	_ "strconv"
+	_ "regexp"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -28,6 +28,7 @@ type ApiVideo struct {
 	UserId        string     `json:"user_id"`
 	PublishedAt   string     `json:"published_at"`
 	Duration      string     `json:"duration"`
+	URL           string     `json:"url"`
 	Start time.Time
 	End time.Time
 }
@@ -42,6 +43,7 @@ type ApiVideosResponse struct {
 
 var debug = false
 var timeZone *time.Location
+const timeLayout = "Mon Jan 2, 2006 at 3:04pm MST"
 
 func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	var err error;
@@ -145,7 +147,11 @@ func getVideos(login string) ([]ApiVideo, error) {
 		fmt.Printf("Videos JSON:\n%s\n", string(formatted[:]))
 	}
 
-	for _, video := range videos.Videos {
+	for i := range videos.Videos {
+		video := &videos.Videos[i]
+
+		// fmt.Printf("Type of video: %T", video)
+
 		var start time.Time
 		start, err = time.Parse("2006-01-02T15:04:05Z", video.PublishedAt)
 		if err != nil {
@@ -154,29 +160,18 @@ func getVideos(login string) ([]ApiVideo, error) {
 		if debug {
 			fmt.Printf("Parsed video start of: %s\n", start.In(timeZone).Format("Mon Jan 2, 2006 at 3:04pm MST"))
 		}
-		video.Start = start
-
-		var hours int;
-		var minutes int;
-		var seconds int;
-
-		capture := func(unitChar string, myInt *int) {
-			myRegex := regexp.MustCompile(`(\d+)` + unitChar)
-			matches := myRegex.FindStringSubmatch(video.Duration)
-			if matches != nil {
-				(*myInt), err = strconv.Atoi(matches[1])
-				if err != nil {
-					log.Fatalf("Error when converting to time unit: %s", err)
-				}
-			}		
-		}
 		
-		capture("h", &hours)
-		capture("m", &minutes)
-		capture("s", &seconds)
+		video.Start = start.In(timeZone)
+
+		var duration time.Duration;		
+		duration, err = time.ParseDuration(video.Duration)
+		if err != nil {
+			log.Fatalf("Error when parsing duration: %s", err)
+		}
+		video.End = video.Start.Add(duration);
 
 		if debug {
-			fmt.Printf("Duration: %s, Hours: %d, Minutes: %d, Seconds: %d\n", video.Duration, hours, minutes, seconds)
+			fmt.Printf("Duration: %s, %.2f\n", video.Duration, duration.Hours())
 		}
 	}
 
@@ -213,7 +208,7 @@ func main() {
 		log.Fatalf("Got error when parsing time: %s", err)
 	}
 	
-	fmt.Printf("Using timestamp of: %s\n", givenTime.Format("Mon Jan 2, 2006 at 3:04pm MST"))
+	fmt.Printf("Using timestamp of: %s\n", givenTime.Format(timeLayout))
 
 	var videos []ApiVideo;
 	videos, err = getVideos(os.Args[1])
@@ -222,4 +217,19 @@ func main() {
 	}
 
 	fmt.Printf("Found %d videos\n", len(videos))
+
+	var qualifyingVideo *ApiVideo;
+	for i := range videos {
+		video := &videos[i]
+		
+		// fmt.Printf("Found video: %s - %s\n", video.Start.Format(timeLayout), video.End.Format(timeLayout))
+		if givenTime.Equal(video.Start) || (givenTime.After(video.Start) && givenTime.Before(video.End)) {
+			qualifyingVideo = video
+			if debug {
+				fmt.Printf("Found video for time: %s\n", video.Start.Format(timeLayout))
+			}
+		}
+	}
+
+	fmt.Printf("Video URL: %s", qualifyingVideo.URL)
 }

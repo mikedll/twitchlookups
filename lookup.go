@@ -216,7 +216,7 @@ func main() {
 		log.Fatalf("Got error when fetching videos: %s", err)
 	}
 
-	fmt.Printf("Found %d videos\n", len(videos))
+	fmt.Printf("Found %d possible videos\n", len(videos))
 
 	var qualifyingVideo *ApiVideo;
 	for i := range videos {
@@ -231,5 +231,9 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Video URL: %s", qualifyingVideo.URL)
+	if qualifyingVideo != nil {
+		fmt.Printf("Video URL: %s\n", qualifyingVideo.URL)
+	} else {
+		fmt.Printf("No matching video found.\n")
+	}
 }

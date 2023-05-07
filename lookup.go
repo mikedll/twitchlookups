@@ -45,6 +45,11 @@ var debug = false
 var timeZone *time.Location
 const timeLayout = "Mon Jan 2, 2006 at 3:04pm MST"
 
+func (video *ApiVideo) Offset(givenTime time.Time) time.Duration {
+	duration := givenTime.Sub(video.Start)
+	return duration
+}
+
 func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	var err error;
 	var req *http.Request;
@@ -232,7 +237,22 @@ func main() {
 	}
 
 	if qualifyingVideo != nil {
-		fmt.Printf("Video URL: %s\n", qualifyingVideo.URL)
+		seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
+		hours := seconds / (60 * 60)
+		seconds = seconds % (60 * 60)
+		minutes := seconds / 60
+		seconds = seconds % 60
+
+		timestampParam := ""
+		if hours > 0 {
+			timestampParam += fmt.Sprintf("%dh", hours)
+		}
+		if minutes > 0 {
+			timestampParam += fmt.Sprintf("%dm", minutes)
+		}
+		timestampParam += fmt.Sprintf("%ds", seconds)
+
+		fmt.Printf("Video URL: %s?t=%s", qualifyingVideo.URL, timestampParam)
 	} else {
 		fmt.Printf("No matching video found.\n")
 	}

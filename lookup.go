@@ -8,6 +8,8 @@ import (
 	"log"
 	"time"
 	"errors"
+	"strconv"
+	"regexp"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -26,6 +28,8 @@ type ApiVideo struct {
 	UserId        string     `json:"user_id"`
 	PublishedAt   string     `json:"published_at"`
 	Duration      string     `json:"duration"`
+	Start time.Time
+	End time.Time
 }
 
 type ApiUsersResponse struct {
@@ -37,6 +41,7 @@ type ApiVideosResponse struct {
 }
 
 var debug = false
+var timeZone *time.Location
 
 func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	var err error;
@@ -140,11 +145,47 @@ func getVideos(login string) ([]ApiVideo, error) {
 		fmt.Printf("Videos JSON:\n%s\n", string(formatted[:]))
 	}
 
+	for _, video := range videos.Videos {
+		var start time.Time
+		start, err = time.Parse("2006-01-02T15:04:05Z", video.PublishedAt)
+		if err != nil {
+			log.Fatalf("Error when parsing video PublishedAt: %s", err)
+		}
+		if debug {
+			fmt.Printf("Parsed video start of: %s\n", start.In(timeZone).Format("Mon Jan 2, 2006 at 3:04pm MST"))
+		}
+		video.Start = start
+
+		var hours int;
+		var minutes int;
+		var seconds int;
+
+		capture := func(unitChar string, myInt *int) {
+			myRegex := regexp.MustCompile(`(\d+)` + unitChar)
+			matches := myRegex.FindStringSubmatch(video.Duration)
+			if matches != nil {
+				(*myInt), err = strconv.Atoi(matches[1])
+				if err != nil {
+					log.Fatalf("Error when converting to time unit: %s", err)
+				}
+			}		
+		}
+		
+		capture("h", &hours)
+		capture("m", &minutes)
+		capture("s", &seconds)
+
+		if debug {
+			fmt.Printf("Duration: %s, Hours: %d, Minutes: %d, Seconds: %d\n", video.Duration, hours, minutes, seconds)
+		}
+	}
+
 	return videos.Videos, nil;
 }
 
 func main() {
 	debug = os.Getenv("DEBUG") == "true"
+	var err error
 	
 	if(fileExists(".env")) {
 		loadErr := godotenv.Load()
@@ -153,8 +194,11 @@ func main() {
 		}
 	}
 
-	time.LoadLocation("America/Los_Angeles")
-
+	timeZone, err = time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Fatalf("Error when loading location: %s", err)
+	}
+	
 	if len(os.Args) != 3 {
 		fmt.Printf("Error: this program requires 2 arguments\n")
 		return;
@@ -164,7 +208,6 @@ func main() {
 	const tsLayout = "3:04 PM MST Jan 2, 2006"
 
 	var givenTime time.Time
-	var err error
 	givenTime, err = time.Parse(tsLayout, os.Args[2])
 	if err != nil {
 		log.Fatalf("Got error when parsing time: %s", err)

@@ -40,7 +40,7 @@ func loadToken() *oauth2.Token {
 }
 
 func cacheTokenToDisk(token *oauth2.Token) {
-	if os.Getenv("DEBUG") == "true" {
+	if debug {
 		fmt.Printf("Writing token to disk: " + token.AccessToken + "\n")
 	}
 
@@ -55,14 +55,14 @@ func cacheTokenToDisk(token *oauth2.Token) {
 	// fmt.Printf(string(tokenBytes[:]) + "\n")
 
 	os.WriteFile(".access_token", tokenBytes, 0644)
-	if os.Getenv("DEBUG") == "true" {
+	if debug {
 		fmt.Printf("Wrote token to disk\n")
 	}
 }
 
 func buildTokenSource() oauth2.TokenSource {
 	token := loadToken()
-	if os.Getenv("DEBUG") == "true" && token != nil {
+	if debug && token != nil {
 		fmt.Printf("Token from file: " + token.AccessToken + "\n")	
 	}
 	
@@ -81,7 +81,7 @@ func buildTokenSource() oauth2.TokenSource {
 		log.Fatal("Got error when getting token from reuse source")
 	}
 
-	if os.Getenv("DEBUG") == "true" {
+	if debug {
 		fmt.Printf("Token from reuse source: " + latestToken.AccessToken + "\n")
 	}
 

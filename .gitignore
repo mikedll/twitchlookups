@@ -3,6 +3,8 @@
 .env
 .access_token
 
+lookup
+
 
 .emacs.desktop
 .emacs.desktop.lock

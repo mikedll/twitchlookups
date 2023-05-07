@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"time"
-	"strconv"
 	_ "errors"
 	"encoding/json"
 	"net/http"
@@ -17,13 +16,13 @@ import (
 )
 
 type ApiUser struct {
-	Id             int                        `json:"id"`
-	Login          string                     `json:"login"`
-	DisplayName    string                     `json:"display_name"`
+	Id             string     `json:"id"`
+	Login          string     `json:"login"`
+	DisplayName    string     `json:"display_name"`
 }
 
 type ApiUsersResponse struct {
-	Users  []ApiUser `json:"data"`
+	Users  []ApiUser    `json:"data"`
 }
 
 func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
@@ -70,21 +69,21 @@ func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	return responseBody, nil;
 }
 
-func getVideos() {
+func getVideos(login string) {
 	tokenSource := buildTokenSource()
-
-	fmt.Printf("Hello from getVideos\n")
 	
 	var responseBody []byte;
 	var err error;
 	
-	login := os.Getenv("TWITCH_LOGIN")
-
 	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/users?login=" + login)
 	if err != nil {
 		log.Fatalf("Got error when fetching users: %s", err)
 	}
 
+	if os.Getenv("DEBUG") == "true" {
+		fmt.Printf(string(responseBody[:]) + "\n")
+	}
+	
 	usersResponse := ApiUsersResponse{};
 	json.Unmarshal(responseBody, &usersResponse)
 
@@ -92,7 +91,7 @@ func getVideos() {
 
 	if os.Getenv("DEBUG") == "true" {
 		for _, user := range usersResponse.Users {
-			fmt.Printf("User: %s\n", user.DisplayName)
+			fmt.Printf("User: %s, Id: %d\n", user.DisplayName, user.Id)
 		}
 	}
 	
@@ -103,7 +102,7 @@ func getVideos() {
 
 	user := usersResponse.Users[0]
 		
-	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/videos?user_id=" + strconv.Itoa(user.Id))
+	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/videos?type=archive&user_id=" + user.Id)
 	if err != nil {
 		log.Fatalf("Got error when fetching videos: %s", err)
 	}
@@ -120,6 +119,11 @@ func main() {
 	}
 
 	time.LoadLocation("America/Los_Angeles")
+
+	if len(os.Args) != 3 {
+		fmt.Printf("Error: this program requires 2 arguments\n")
+		return;
+	}
 	
-	getVideos()
+	getVideos(os.Args[1])
 }

@@ -7,7 +7,7 @@ import (
 	"io"
 	"log"
 	"time"
-	_ "errors"
+	"errors"
 	"encoding/json"
 	"net/http"
 	"net/http/httputil"
@@ -21,9 +21,22 @@ type ApiUser struct {
 	DisplayName    string     `json:"display_name"`
 }
 
+type ApiVideo struct {
+	Id            string     `json:"id"`
+	UserId        string     `json:"user_id"`
+	PublishedAt   string     `json:"published_at"`
+	Duration      string     `json:"duration"`
+}
+
 type ApiUsersResponse struct {
 	Users  []ApiUser    `json:"data"`
 }
+
+type ApiVideosResponse struct {
+	Videos  []ApiVideo   `json:"data"`
+}
+
+var debug = false
 
 func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	var err error;
@@ -69,7 +82,7 @@ func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	return responseBody, nil;
 }
 
-func getVideos(login string) {
+func getVideos(login string) ([]ApiVideo, error) {
 	tokenSource := buildTokenSource()
 	
 	var responseBody []byte;
@@ -85,7 +98,10 @@ func getVideos(login string) {
 	}
 	
 	usersResponse := ApiUsersResponse{};
-	json.Unmarshal(responseBody, &usersResponse)
+	err = json.Unmarshal(responseBody, &usersResponse)
+	if err != nil {
+		log.Fatalf("Got error when unmarshaling users: %s", err)
+	}
 
 	// fmt.Printf("Users length: %d\n", len(usersResponse.Users))
 
@@ -97,7 +113,7 @@ func getVideos(login string) {
 	
 	if len(usersResponse.Users) != 1 {
 		fmt.Printf("Failed to retrieve exactly 1 user with login: %s\n", login)
-		return
+		return []ApiVideo{}, errors.New("Failed to find exactly 1 user");
 	}
 
 	user := usersResponse.Users[0]
@@ -107,10 +123,29 @@ func getVideos(login string) {
 		log.Fatalf("Got error when fetching videos: %s", err)
 	}
 
-	fmt.Printf(string(responseBody[:]) + "\n")	
+	// fmt.Printf(string(responseBody[:]) + "\n")
+
+	videos := ApiVideosResponse{}
+	err = json.Unmarshal(responseBody, &videos)
+	if err != nil {
+		log.Fatalf("Got error when unmarshaling videos: %s", err)
+	}
+
+	if debug {
+		var formatted []byte;
+		formatted, err = json.MarshalIndent(videos, "", "  ")
+		if err != nil {
+			log.Fatalf("Got error when marshaling videos: %s", err)
+		}
+		fmt.Printf("Videos JSON:\n%s\n", string(formatted[:]))
+	}
+
+	return videos.Videos, nil;
 }
 
 func main() {
+	debug = os.Getenv("DEBUG") == "true"
+	
 	if(fileExists(".env")) {
 		loadErr := godotenv.Load()
 		if loadErr != nil {
@@ -124,6 +159,24 @@ func main() {
 		fmt.Printf("Error: this program requires 2 arguments\n")
 		return;
 	}
+
+	// Example input: 3:40 PM PDT May 4, 2023
+	const tsLayout = "3:04 PM MST Jan 2, 2006"
+
+	var givenTime time.Time
+	var err error
+	givenTime, err = time.Parse(tsLayout, os.Args[2])
+	if err != nil {
+		log.Fatalf("Got error when parsing time: %s", err)
+	}
 	
-	getVideos(os.Args[1])
+	fmt.Printf("Using timestamp of: %s\n", givenTime.Format("Mon Jan 2, 2006 at 3:04pm MST"))
+
+	var videos []ApiVideo;
+	videos, err = getVideos(os.Args[1])
+	if err != nil {
+		log.Fatalf("Got error when fetching videos: %s", err)
+	}
+
+	fmt.Printf("Found %d videos\n", len(videos))
 }

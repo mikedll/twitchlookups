@@ -252,7 +252,7 @@ func main() {
 		}
 		timestampParam += fmt.Sprintf("%ds", seconds)
 
-		fmt.Printf("Video URL: %s?t=%s", qualifyingVideo.URL, timestampParam)
+		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)
 	} else {
 		fmt.Printf("No matching video found.\n")
 	}

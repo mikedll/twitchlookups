@@ -183,7 +183,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 	return videos.Videos, nil;
 }
 
-func ParseTime(input string) time.Time {
+func ParseTime(input string) *time.Time {
 	// Example input: 3:40 PM PDT May 4, 2023
 	var err error;
 	const tsLayout = "3:04 PM MST Jan 2, 2006"
@@ -191,12 +191,13 @@ func ParseTime(input string) time.Time {
 	var givenTime time.Time
 	givenTime, err = time.Parse(tsLayout, input)
 	if err != nil {
-		log.Fatalf("Got error when parsing time: %s", err)
+		fmt.Printf("Got error when parsing time: %s\n", err)
+		return nil
 	}
 	
 	fmt.Printf("Using timestamp of: %s\n", givenTime.Format(timeLayout))
 
-	return givenTime
+	return &givenTime
 }
 
 func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string) {

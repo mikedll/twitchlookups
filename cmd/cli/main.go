@@ -16,7 +16,12 @@ func main() {
 	}
 
 	givenTime := pkg.ParseTime(os.Args[2])
-	qualifyingVideo, timestampParam := pkg.GetQualifyingVideo(os.Args[1], givenTime)
+	if givenTime == nil {
+		fmt.Printf("Failed to parse time\n")
+		return
+	}
+	
+	qualifyingVideo, timestampParam := pkg.GetQualifyingVideo(os.Args[1], *givenTime)
 
 	if qualifyingVideo != nil {
 		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)

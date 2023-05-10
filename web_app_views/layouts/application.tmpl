@@ -7,6 +7,8 @@
 
     <script>
       const videoURL = "{{ .videoURL }}";
+      const error = "{{ .error }}";
+      
       document.addEventListener("DOMContentLoaded", () => {
         const result = document.querySelector('.result-holder');
         if(result !== null) {
@@ -18,6 +20,15 @@
           } else {
             result.appendChild(document.createTextNode("No video found."));
           }
+        }
+
+        if(error !== '') {
+          const alerts = document.querySelector('.alerts-container');
+          const alert = document.createElement('div');
+          alert.appendChild(document.createTextNode(error));
+          alert.classList.add('alert');
+          alert.classList.add('alert-danger');
+          alerts.appendChild(alert);
         }
       });
     </script>
@@ -38,6 +49,9 @@
             <h1>
               <a href="/">Twitch Lookups</a>
             </h1>
+          </div>
+
+          <div class="mb-2 alerts-container">
           </div>
 
           {{ yield }}          

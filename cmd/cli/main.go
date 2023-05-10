@@ -21,7 +21,11 @@ func main() {
 		return
 	}
 	
-	qualifyingVideo, timestampParam := pkg.GetQualifyingVideo(os.Args[1], *givenTime)
+	qualifyingVideo, timestampParam, err := pkg.GetQualifyingVideo(os.Args[1], *givenTime)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
 
 	if qualifyingVideo != nil {
 		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)

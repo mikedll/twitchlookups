@@ -118,8 +118,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 	}
 	
 	if len(usersResponse.Users) != 1 {
-		fmt.Printf("Failed to retrieve exactly 1 user with login: %s\n", login)
-		return []ApiVideo{}, errors.New("Failed to find exactly 1 user");
+		return []ApiVideo{}, errors.New(fmt.Sprintf("Failed to find exactly 1 user for username '%s'", login));
 	}
 
 	user := usersResponse.Users[0]
@@ -194,16 +193,18 @@ func ParseTime(input string) *time.Time {
 	return &givenTime
 }
 
-func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string) {
+func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string, error) {
 	var videos []ApiVideo;
 	var err error;
 	videos, err = getVideos(username)
 	if err != nil {
-		fmt.Printf("Got error when fetching videos: %s\n", err)
-		return nil, ""
+		return nil, "", err
 	}
 
 	fmt.Printf("Found %d possible videos\n", len(videos))
+	if len(videos) == 0 {
+		return nil, "", errors.New(fmt.Sprintf("No VODs found for user '%s'", username))
+	}
 
 	var qualifyingVideo *ApiVideo;
 	for i := range videos {
@@ -217,25 +218,27 @@ func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 			}
 		}
 	}
-
-	timestampParam := ""	
-	if qualifyingVideo != nil {
-		seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
-		hours := seconds / (60 * 60)
-		seconds = seconds % (60 * 60)
-		minutes := seconds / 60
-		seconds = seconds % 60
-
-		if hours > 0 {
-			timestampParam += fmt.Sprintf("%dh", hours)
-		}
-		if minutes > 0 {
-			timestampParam += fmt.Sprintf("%dm", minutes)
-		}
-		timestampParam += fmt.Sprintf("%ds", seconds)
+	
+	if qualifyingVideo == nil {
+		return nil, "", errors.New(fmt.Sprintf("There is no VOD that overlaps with the given time, %s", givenTime.Format(timeLayout)))
 	}
+	
+	timestampParam := ""
+	seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
+	hours := seconds / (60 * 60)
+	seconds = seconds % (60 * 60)
+	minutes := seconds / 60
+	seconds = seconds % 60
 
-	return qualifyingVideo, timestampParam
+	if hours > 0 {
+		timestampParam += fmt.Sprintf("%dh", hours)
+	}
+	if minutes > 0 {
+		timestampParam += fmt.Sprintf("%dm", minutes)
+	}
+	timestampParam += fmt.Sprintf("%ds", seconds)
+
+	return qualifyingVideo, timestampParam, nil
 }
 
 func Init() {

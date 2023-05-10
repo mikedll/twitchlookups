@@ -23,11 +23,17 @@ func lookup(w http.ResponseWriter, req *http.Request) {
 	
 	givenTime := pkg.ParseTime(req.URL.Query().Get("timestamp"))
 	if givenTime == nil {
+		ctx["error"] = template.HTML(fmt.Sprintf("Failed to parse timestamp"))
 		renderer.Execute("lookup", ctx, req, w)	
 		return
 	}
 	
-	qualifyingVideo, timestampParam := pkg.GetQualifyingVideo(req.URL.Query().Get("username"), *givenTime)
+	qualifyingVideo, timestampParam, err := pkg.GetQualifyingVideo(req.URL.Query().Get("username"), *givenTime)
+	if err != nil {
+		ctx["error"] = template.HTML(fmt.Sprintf("%s", err))
+		renderer.Execute("lookup", ctx, req, w)	
+		return
+	}	
 
 	videoURL := ""
 	if qualifyingVideo != nil {

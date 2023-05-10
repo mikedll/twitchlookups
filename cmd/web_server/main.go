@@ -53,7 +53,6 @@ func main() {
 	var addr string = "localhost:8081"
 	port := os.Getenv("PORT")
 
-	// Going to use this to determine production environment...LOL!
 	if port != "" {
 		addr = fmt.Sprintf("localhost:%s", port)
 	}

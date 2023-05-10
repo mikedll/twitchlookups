@@ -205,7 +205,8 @@ func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 	var err error;
 	videos, err = getVideos(username)
 	if err != nil {
-		log.Fatalf("Got error when fetching videos: %s", err)
+		fmt.Printf("Got error when fetching videos: %s\n", err)
+		return nil, ""
 	}
 
 	fmt.Printf("Found %d possible videos\n", len(videos))

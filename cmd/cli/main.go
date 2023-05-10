@@ -23,8 +23,5 @@ func main() {
 	} else {
 		fmt.Printf("No matching video found.\n")
 	}
-	
-
-	fmt.Printf("Cli has loaded")
 }
 

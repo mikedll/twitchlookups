@@ -12,3 +12,7 @@ Example:
 ## Buiding a different executable
 
     go build cmd/cli/main.go 
+
+
+
+[SO: Using internal packages](https://stackoverflow.com/questions/33351387/how-to-use-internal-packages)

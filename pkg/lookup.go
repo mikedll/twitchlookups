@@ -50,16 +50,12 @@ func (video *ApiVideo) Offset(givenTime time.Time) time.Duration {
 	return duration
 }
 
-func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
+func get(url string) ([]byte, error) {
 	var err error;
 	var req *http.Request;
 	var token *oauth2.Token;
 	
-	token, err = tokenSource.Token()
-	if err != nil {
-		log.Fatal("Failed to build token from token source")
-	}
-
+	token = getToken()
 	req, err = http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal("Failed to build request")
@@ -94,13 +90,11 @@ func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 	return responseBody, nil
 }
 
-func getVideos(login string) ([]ApiVideo, error) {
-	tokenSource := buildTokenSource()
-	
+func getVideos(login string) ([]ApiVideo, error) {	
 	var responseBody []byte
 	var err error
 	
-	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/users?login=" + login)
+	responseBody, err = get("https://api.twitch.tv/helix/users?login=" + login)
 	if err != nil {
 		log.Fatalf("Got error when fetching users: %s", err)
 	}
@@ -130,7 +124,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 
 	user := usersResponse.Users[0]
 		
-	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/videos?type=archive&user_id=" + user.Id)
+	responseBody, err = get("https://api.twitch.tv/helix/videos?type=archive&user_id=" + user.Id)
 	if err != nil {
 		log.Fatalf("Got error when fetching videos: %s", err)
 	}

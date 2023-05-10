@@ -11,7 +11,10 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-func loadToken() *oauth2.Token {
+var tokenSource *oauth2.TokenSource
+var mostRecentToken *oauth2.Token
+
+func loadTokenFromFile() *oauth2.Token {
 	tokenFile := ".access_token"
 	
 	if !fileExists(tokenFile) {
@@ -60,10 +63,13 @@ func cacheTokenToDisk(token *oauth2.Token) {
 	}
 }
 
-func buildTokenSource() oauth2.TokenSource {
-	token := loadToken()
-	if debug && token != nil {
-		fmt.Printf("Token from file: " + token.AccessToken + "\n")	
+func buildTokenSource() *oauth2.TokenSource {
+	token := loadTokenFromFile()
+	if token != nil {
+		mostRecentToken = token
+		if debug {
+			fmt.Printf("Token from file: " + token.AccessToken + "\n")
+		}
 	}
 	
 	oauth2Conf := &clientcredentials.Config{
@@ -75,17 +81,30 @@ func buildTokenSource() oauth2.TokenSource {
 	tokenSource := oauth2Conf.TokenSource(oauth2.NoContext)
 	reuseTokenSource := oauth2.ReuseTokenSource(token, tokenSource)
 
-	var err error;	
-	latestToken, err := reuseTokenSource.Token()
+	return &reuseTokenSource;
+}
+
+func getToken() (token *oauth2.Token) {
+	var err error;
+	
+	if tokenSource == nil {
+		tokenSource = buildTokenSource()
+	}
+
+	token, err = (*tokenSource).Token()
 	if err != nil {
-		log.Fatal("Got error when getting token from reuse source")
+		log.Fatal("Failed to build token from token source")
 	}
 
-	if debug {
-		fmt.Printf("Token from reuse source: " + latestToken.AccessToken + "\n")
+
+	if mostRecentToken != nil && token.AccessToken == mostRecentToken.AccessToken {
+		if debug {
+			fmt.Printf("Using most recent token: %s\n", mostRecentToken.AccessToken)
+		}
+		return mostRecentToken;
 	}
-
-	cacheTokenToDisk(latestToken)
-
-	return reuseTokenSource;
+	
+	mostRecentToken = token
+	cacheTokenToDisk(mostRecentToken)
+	return mostRecentToken
 }

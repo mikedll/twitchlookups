@@ -3,10 +3,28 @@ package main
 
 import (
 	"fmt"
-	"toola"
+	"pkg"
+	"os"
 )
 
 func main() {
-	fmt.Printf("Hello %s\n", toola.ToImport())
+	pkg.Init()
+
+	if len(os.Args) != 3 {
+		fmt.Printf("Error: this program requires 2 arguments\n")
+		return;
+	}
+
+	givenTime := pkg.ParseTime(os.Args[2])
+	qualifyingVideo, timestampParam := pkg.GetQualifyingVideo(os.Args[1], givenTime)
+
+	if qualifyingVideo != nil {
+		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)
+	} else {
+		fmt.Printf("No matching video found.\n")
+	}
+	
+
+	fmt.Printf("Cli has loaded")
 }
 

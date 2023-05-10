@@ -3,9 +3,7 @@
 .env
 .access_token
 
-lookup
-main
-
+bin/*
 
 .emacs.desktop
 .emacs.desktop.lock

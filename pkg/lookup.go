@@ -1,5 +1,5 @@
 
-package main
+package pkg
 
 import (
 	"os"
@@ -183,7 +183,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 	return videos.Videos, nil;
 }
 
-func getTime(input string) time.Time {
+func ParseTime(input string) time.Time {
 	// Example input: 3:40 PM PDT May 4, 2023
 	var err error;
 	const tsLayout = "3:04 PM MST Jan 2, 2006"
@@ -199,7 +199,7 @@ func getTime(input string) time.Time {
 	return givenTime
 }
 
-func getQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string) {
+func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string) {
 	var videos []ApiVideo;
 	var err error;
 	videos, err = getVideos(username)
@@ -222,8 +222,7 @@ func getQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 		}
 	}
 
-	var timestampParam string;
-	
+	timestampParam := ""	
 	if qualifyingVideo != nil {
 		seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
 		hours := seconds / (60 * 60)
@@ -231,7 +230,6 @@ func getQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 		minutes := seconds / 60
 		seconds = seconds % 60
 
-		timestampParam := ""
 		if hours > 0 {
 			timestampParam += fmt.Sprintf("%dh", hours)
 		}
@@ -244,9 +242,8 @@ func getQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 	return qualifyingVideo, timestampParam;
 }
 
-func mains() {
+func Init() {
 	debug = os.Getenv("DEBUG") == "true"
-	var err error
 	
 	if(fileExists(".env")) {
 		loadErr := godotenv.Load()
@@ -255,22 +252,11 @@ func mains() {
 		}
 	}
 
+	var err error
 	timeZone, err = time.LoadLocation("America/Los_Angeles")
+
 	if err != nil {
 		log.Fatalf("Error when loading location: %s", err)
-	}
-	
-	if len(os.Args) != 3 {
-		fmt.Printf("Error: this program requires 2 arguments\n")
-		return;
-	}
+	}	
+}	
 
-	givenTime := getTime(os.Args[2])
-	qualifyingVideo, timestampParam := getQualifyingVideo(os.Args[1], givenTime)
-
-	if qualifyingVideo != nil {
-		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)
-	} else {
-		fmt.Printf("No matching video found.\n")
-	}
-}

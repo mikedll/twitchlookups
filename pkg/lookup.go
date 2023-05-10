@@ -91,14 +91,14 @@ func get(tokenSource oauth2.TokenSource, url string) ([]byte, error) {
 
 	// errors.New("Random error")
 	
-	return responseBody, nil;
+	return responseBody, nil
 }
 
 func getVideos(login string) ([]ApiVideo, error) {
 	tokenSource := buildTokenSource()
 	
-	var responseBody []byte;
-	var err error;
+	var responseBody []byte
+	var err error
 	
 	responseBody, err = get(tokenSource, "https://api.twitch.tv/helix/users?login=" + login)
 	if err != nil {
@@ -239,7 +239,7 @@ func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 		timestampParam += fmt.Sprintf("%ds", seconds)
 	}
 
-	return qualifyingVideo, timestampParam;
+	return qualifyingVideo, timestampParam
 }
 
 func Init() {

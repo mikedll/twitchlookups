@@ -183,7 +183,68 @@ func getVideos(login string) ([]ApiVideo, error) {
 	return videos.Videos, nil;
 }
 
-func main() {
+func getTime(input string) time.Time {
+	// Example input: 3:40 PM PDT May 4, 2023
+	var err error;
+	const tsLayout = "3:04 PM MST Jan 2, 2006"
+
+	var givenTime time.Time
+	givenTime, err = time.Parse(tsLayout, input)
+	if err != nil {
+		log.Fatalf("Got error when parsing time: %s", err)
+	}
+	
+	fmt.Printf("Using timestamp of: %s\n", givenTime.Format(timeLayout))
+
+	return givenTime
+}
+
+func getQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string) {
+	var videos []ApiVideo;
+	var err error;
+	videos, err = getVideos(username)
+	if err != nil {
+		log.Fatalf("Got error when fetching videos: %s", err)
+	}
+
+	fmt.Printf("Found %d possible videos\n", len(videos))
+
+	var qualifyingVideo *ApiVideo;
+	for i := range videos {
+		video := &videos[i]
+		
+		// fmt.Printf("Found video: %s - %s\n", video.Start.Format(timeLayout), video.End.Format(timeLayout))
+		if givenTime.Equal(video.Start) || (givenTime.After(video.Start) && givenTime.Before(video.End)) {
+			qualifyingVideo = video
+			if debug {
+				fmt.Printf("Found video for time: %s\n", video.Start.Format(timeLayout))
+			}
+		}
+	}
+
+	var timestampParam string;
+	
+	if qualifyingVideo != nil {
+		seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
+		hours := seconds / (60 * 60)
+		seconds = seconds % (60 * 60)
+		minutes := seconds / 60
+		seconds = seconds % 60
+
+		timestampParam := ""
+		if hours > 0 {
+			timestampParam += fmt.Sprintf("%dh", hours)
+		}
+		if minutes > 0 {
+			timestampParam += fmt.Sprintf("%dm", minutes)
+		}
+		timestampParam += fmt.Sprintf("%ds", seconds)
+	}
+
+	return qualifyingVideo, timestampParam;
+}
+
+func mains() {
 	debug = os.Getenv("DEBUG") == "true"
 	var err error
 	
@@ -204,54 +265,10 @@ func main() {
 		return;
 	}
 
-	// Example input: 3:40 PM PDT May 4, 2023
-	const tsLayout = "3:04 PM MST Jan 2, 2006"
-
-	var givenTime time.Time
-	givenTime, err = time.Parse(tsLayout, os.Args[2])
-	if err != nil {
-		log.Fatalf("Got error when parsing time: %s", err)
-	}
-	
-	fmt.Printf("Using timestamp of: %s\n", givenTime.Format(timeLayout))
-
-	var videos []ApiVideo;
-	videos, err = getVideos(os.Args[1])
-	if err != nil {
-		log.Fatalf("Got error when fetching videos: %s", err)
-	}
-
-	fmt.Printf("Found %d possible videos\n", len(videos))
-
-	var qualifyingVideo *ApiVideo;
-	for i := range videos {
-		video := &videos[i]
-		
-		// fmt.Printf("Found video: %s - %s\n", video.Start.Format(timeLayout), video.End.Format(timeLayout))
-		if givenTime.Equal(video.Start) || (givenTime.After(video.Start) && givenTime.Before(video.End)) {
-			qualifyingVideo = video
-			if debug {
-				fmt.Printf("Found video for time: %s\n", video.Start.Format(timeLayout))
-			}
-		}
-	}
+	givenTime := getTime(os.Args[2])
+	qualifyingVideo, timestampParam := getQualifyingVideo(os.Args[1], givenTime)
 
 	if qualifyingVideo != nil {
-		seconds := int(qualifyingVideo.Offset(givenTime).Seconds())
-		hours := seconds / (60 * 60)
-		seconds = seconds % (60 * 60)
-		minutes := seconds / 60
-		seconds = seconds % 60
-
-		timestampParam := ""
-		if hours > 0 {
-			timestampParam += fmt.Sprintf("%dh", hours)
-		}
-		if minutes > 0 {
-			timestampParam += fmt.Sprintf("%dm", minutes)
-		}
-		timestampParam += fmt.Sprintf("%ds", seconds)
-
 		fmt.Printf("Video URL: %s?t=%s\n", qualifyingVideo.URL, timestampParam)
 	} else {
 		fmt.Printf("No matching video found.\n")

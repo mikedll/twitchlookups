@@ -41,6 +41,7 @@ type ApiVideosResponse struct {
 	Videos  []ApiVideo   `json:"data"`
 }
 
+var Env string
 var debug = false
 var timeZone *time.Location
 const timeLayout = "Mon Jan 2, 2006 at 3:04pm MST"
@@ -241,9 +242,7 @@ func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 	return qualifyingVideo, timestampParam, nil
 }
 
-func Init() {
-	debug = os.Getenv("DEBUG") == "true"
-	
+func Init() {	
 	if(fileExists(".env")) {
 		loadErr := godotenv.Load()
 		if loadErr != nil {
@@ -251,6 +250,9 @@ func Init() {
 		}
 	}
 
+	debug = os.Getenv("DEBUG") == "true"
+	Env = os.Getenv("APP_ENV")
+	
 	var err error
 	timeZone, err = time.LoadLocation("America/Los_Angeles")
 

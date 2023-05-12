@@ -30,7 +30,7 @@ func defaultCtx() map[string]interface{} {
 `
 		snippet = strings.ReplaceAll(snippet, "ID", os.Getenv("GOOGLE_ANALYTICS_ID"))
 
-		if true {
+		if pkg.Debug {
 			fmt.Printf("snippet:\n %s\n", snippet)
 		}
 		

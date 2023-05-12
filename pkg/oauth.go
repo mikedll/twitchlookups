@@ -43,7 +43,7 @@ func loadTokenFromFile() *oauth2.Token {
 }
 
 func cacheTokenToDisk(token *oauth2.Token) {
-	if debug {
+	if Debug {
 		fmt.Printf("Writing token to disk: " + token.AccessToken + "\n")
 	}
 
@@ -58,7 +58,7 @@ func cacheTokenToDisk(token *oauth2.Token) {
 	// fmt.Printf(string(tokenBytes[:]) + "\n")
 
 	os.WriteFile(".access_token", tokenBytes, 0644)
-	if debug {
+	if Debug {
 		fmt.Printf("Wrote token to disk\n")
 	}
 }
@@ -67,7 +67,7 @@ func buildTokenSource() *oauth2.TokenSource {
 	token := loadTokenFromFile()
 	if token != nil {
 		mostRecentToken = token
-		if debug {
+		if Debug {
 			fmt.Printf("Token from file: " + token.AccessToken + "\n")
 		}
 	}
@@ -98,7 +98,7 @@ func getToken() (token *oauth2.Token) {
 
 
 	if mostRecentToken != nil && token.AccessToken == mostRecentToken.AccessToken {
-		if debug {
+		if Debug {
 			fmt.Printf("Using most recent token: %s\n", mostRecentToken.AccessToken)
 		}
 		return mostRecentToken;

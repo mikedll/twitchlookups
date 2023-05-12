@@ -42,7 +42,7 @@ type ApiVideosResponse struct {
 }
 
 var Env string
-var debug = false
+var Debug = false
 var timeZone *time.Location
 const timeLayout = "Mon Jan 2, 2006 at 3:04pm MST"
 
@@ -137,7 +137,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 		log.Fatalf("Got error when unmarshaling videos: %s", err)
 	}
 
-	if debug {
+	if Debug {
 		var formatted []byte;
 		formatted, err = json.MarshalIndent(videos, "", "  ")
 		if err != nil {
@@ -156,7 +156,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 		if err != nil {
 			log.Fatalf("Error when parsing video PublishedAt: %s", err)
 		}
-		if debug {
+		if Debug {
 			fmt.Printf("Parsed video start of: %s\n", start.In(timeZone).Format("Mon Jan 2, 2006 at 3:04pm MST"))
 		}
 		
@@ -169,7 +169,7 @@ func getVideos(login string) ([]ApiVideo, error) {
 		}
 		video.End = video.Start.Add(duration);
 
-		if debug {
+		if Debug {
 			fmt.Printf("Duration: %s, %.2f\n", video.Duration, duration.Hours())
 		}
 	}
@@ -214,7 +214,7 @@ func GetQualifyingVideo(username string, givenTime time.Time) (*ApiVideo, string
 		// fmt.Printf("Found video: %s - %s\n", video.Start.Format(timeLayout), video.End.Format(timeLayout))
 		if givenTime.Equal(video.Start) || (givenTime.After(video.Start) && givenTime.Before(video.End)) {
 			qualifyingVideo = video
-			if debug {
+			if Debug {
 				fmt.Printf("Found video for time: %s\n", video.Start.Format(timeLayout))
 			}
 		}
@@ -250,7 +250,7 @@ func Init() {
 		}
 	}
 
-	debug = os.Getenv("DEBUG") == "true"
+	Debug = os.Getenv("DEBUG") == "true"
 	Env = os.Getenv("APP_ENV")
 	
 	var err error

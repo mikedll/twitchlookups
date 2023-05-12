@@ -4,7 +4,8 @@
 .access_token
 
 bin/*
-
+log/*
+  
 .emacs.desktop
 .emacs.desktop.lock
 

@@ -1,0 +1,19 @@
+
+# Place in /etc/systemd/system
+# Maybe it should be in /lib/systemd on Ubuntu but we can worry about that some other time.
+  
+[Unit]
+Description=Twitch VOD Lookups Web Server
+After=network.target
+StartLimitIntervalSec=30
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=3
+User=mrmike
+WorkingDirectory=/home/mrmike/twitchlookups
+ExecStart=/home/mrmike/twitchlookups/bin/web_server
+
+[Install]
+WantedBy=multi-user.target
